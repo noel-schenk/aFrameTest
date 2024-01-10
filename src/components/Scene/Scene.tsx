@@ -1,10 +1,10 @@
 import {
-    FC, Suspense, useRef,
+    FC, Suspense, useEffect, useRef,
     useState
 } from 'react'
 import { SceneWrapper } from './Scene.styled'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Box, Plane, Text } from '@react-three/drei'
+import { Box, Plane, Sphere, Text } from '@react-three/drei'
 import {
     Controllers,
     Hands,
@@ -13,9 +13,13 @@ import {
 } from '@react-three/xr'
 import { Physics, RapierRigidBody, RigidBody } from '@react-three/rapier'
 import {
+    BufferGeometry,
+    Mesh,
+    NormalBufferAttributes,
     Vector3
 } from 'three'
 import useGlobalState from '../../GlobalState'
+import { v2a } from '../../Helper'
 
 interface SceneProps {}
 
@@ -24,8 +28,9 @@ const PhysicsBox = () => {
 
     const boxRigidBody = useRef<RapierRigidBody>(null)
     const [boxColor, setBoxColor] = useState('blue')
-    const [position] = useState(new Vector3(0, 0, 0))
+    const [position] = useState(new Vector3(0, 0.3, 0))
     const [isDragging, setIsDragging] = useState(false)
+    const [test, setTest] = useState(false)
 
     useFrame(() => {
         const controllerRight = globalState['controller-right']
@@ -35,6 +40,7 @@ const PhysicsBox = () => {
         )
 
         if (!isDragging) {
+            setTest(false);
             boxRigidBody.current?.setEnabled(true)
             return
         }
@@ -53,10 +59,10 @@ const PhysicsBox = () => {
     })
 
     return (
-        <Interactive onSelectStart={() => setIsDragging(true)}>
+        <Interactive onHover={() => {setTest(true); setIsDragging(true); }}>
             <RigidBody ref={boxRigidBody}>
                 <Text color="green" position={[1, 1, 1]} fontSize={0.1}>
-                    Test Position is set to {position} and test: and gs:
+                    Test: {JSON.stringify(test)} Position is set to {position} and test: and gs:
                 </Text>
                 <Box args={[0.2, 0.2, 0.2]} position={position}>
                     <meshStandardMaterial color={boxColor} />
@@ -72,12 +78,49 @@ const Floor = () => {
             <Plane
                 args={[10, 10]}
                 rotation={[-Math.PI / 2, 0, 0]}
-                position={[0, -0.5, 0]}
+                position={[0, 0, 0]}
                 receiveShadow
             >
                 <meshStandardMaterial color="pink" />
             </Plane>
         </RigidBody>
+    )
+}
+
+const Hand = () => {
+    const globalState = useGlobalState();
+
+    const left = useRef() as React.RefObject<Mesh<BufferGeometry>>
+    const right = useRef() as React.RefObject<Mesh<BufferGeometry>>
+
+    const [test, setTest] = useState('test')
+
+    useFrame(() => {
+        if(!globalState['controller-left']?.controller?.position || !globalState['controller-right']?.controller?.position) return;
+        
+        left.current?.position.set(...v2a(globalState['controller-left'].controller.position))
+        right.current?.position.set(...v2a(globalState['controller-right'].controller.position))
+    });  
+
+    useEffect(() => {
+        if (left.current) {
+          // Set the position here
+          left.current.position.set(1, 2, 3); // Example position
+        }
+      }, []);
+
+    return (
+        <>
+            <Sphere ref={left} args={[0.2]}>
+                <meshStandardMaterial color="red" />
+            </Sphere>
+            <Sphere ref={right} args={[0.2]}>
+                <meshStandardMaterial color="blue" />
+            </Sphere>
+            <Text color="green" fontSize={0.1}>
+                Test:
+            </Text>
+        </>
     )
 }
 
@@ -108,6 +151,7 @@ const Scene: FC<SceneProps> = () => {
                 <XR>
                     <XR_Init>
                         <Controllers />
+                        <Hand />
                         <Suspense>
                             <Physics debug gravity={[0, -9.81, 0]}>
                                 <Hands />
@@ -129,7 +173,7 @@ const Scene: FC<SceneProps> = () => {
                                 <PhysicsBox />
                                 <PhysicsBox />
                                 <Interactive>
-                                    <Box position={[1.2, 0, 0]} />
+                                    <Box position={[1.2, 2, 0]} />
                                 </Interactive>
                                 <Floor />
                             </Physics>

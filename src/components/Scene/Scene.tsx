@@ -31,6 +31,7 @@ import { BufferGeometry, Mesh, NormalBufferAttributes, Vector3 } from 'three'
 import useGlobalState from '../../GlobalState'
 import { v2a } from '../../Helper'
 import { TestMessage } from 'rxjs/internal/testing/TestMessage'
+import { Turnable } from './interactables/Turnable'
 
 interface SceneProps {}
 
@@ -236,6 +237,13 @@ const Scene: FC<SceneProps> = () => {
                                 <Interactive>
                                     <Box position={[1.2, 2, 0]} />
                                 </Interactive>
+
+                                <Turnable scale={0.3} position={new Vector3(0, 0.25, 0)}>
+                                    <Box scale={[0.1, 1, 0.4]} position={new Vector3(0, 0, 0.2)}>
+                                        <meshStandardMaterial color="red" />
+                                    </Box>
+                                </Turnable>
+
                                 <Floor />
                             </Physics>
                         </Suspense>

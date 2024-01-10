@@ -1,25 +1,19 @@
-import { Children, FC, ReactNode, Ref, Suspense, useEffect, useRef, useState } from 'react'
+import {
+    FC, Suspense, useRef,
+    useState
+} from 'react'
 import { SceneWrapper } from './Scene.styled'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Box, Plane, Text } from '@react-three/drei'
 import {
     Controllers,
     Hands,
-    Interactive,
-    RayGrab,
-    VRButton,
-    XR,
-    XRInteractionEvent,
-    useController,
+    Interactive, VRButton,
+    XR, useController
 } from '@react-three/xr'
 import { Physics, RapierRigidBody, RigidBody } from '@react-three/rapier'
 import {
-    BufferGeometry,
-    Material,
-    Mesh,
-    NormalBufferAttributes,
-    Object3DEventMap,
-    Vector3,
+    Vector3
 } from 'three'
 import useGlobalState from '../../GlobalState'
 
@@ -30,27 +24,33 @@ const PhysicsBox = () => {
 
     const boxRigidBody = useRef<RapierRigidBody>(null)
     const [boxColor, setBoxColor] = useState('blue')
-    const [position, setPosition] = useState(new Vector3(0, 0, 0))
+    const [position] = useState(new Vector3(0, 0, 0))
     const [isDragging, setIsDragging] = useState(false)
 
     useFrame(() => {
-        const controllerRight = globalState['controller-right'];
-        console.log('pressed', controllerRight.inputSource?.gamepad?.buttons[0].pressed)
-        
+        const controllerRight = globalState['controller-right']
+        console.log(
+            'pressed',
+            controllerRight.inputSource?.gamepad?.buttons[0].pressed
+        )
+
         if (!isDragging) {
             boxRigidBody.current?.setEnabled(true)
-            return;
+            return
         }
 
         if (!controllerRight.inputSource?.gamepad?.buttons[0].pressed) {
             setIsDragging(false)
-            return;
+            return
         }
 
         setBoxColor('red')
         boxRigidBody.current?.setEnabled(false)
-        boxRigidBody.current?.setTranslation(controllerRight.controller.position, true)
-    });
+        boxRigidBody.current?.setTranslation(
+            controllerRight.controller.position,
+            true
+        )
+    })
 
     return (
         <Interactive onSelectStart={() => setIsDragging(true)}>
@@ -82,7 +82,7 @@ const Floor = () => {
 }
 
 interface XRInitProps {
-    children: React.ReactNode;
+    children: React.ReactNode
 }
 
 const XR_Init: React.FC<XRInitProps> = ({ children }) => {
@@ -95,17 +95,12 @@ const XR_Init: React.FC<XRInitProps> = ({ children }) => {
         if (!controllerLeft || !controllerRight) return
         globalState.set('controller-left', controllerLeft)
         globalState.set('controller-right', controllerRight)
-    });
+    })
 
-    return <>
-        {children}
-    </>
-};
-
-
+    return <>{children}</>
+}
 
 const Scene: FC<SceneProps> = () => {
-
     return (
         <SceneWrapper>
             <VRButton />

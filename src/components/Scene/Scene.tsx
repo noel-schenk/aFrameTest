@@ -1,6 +1,13 @@
 import {
-    FC, Suspense, useEffect, useRef,
-    useState
+    FC,
+    ForwardRefExoticComponent,
+    MemoExoticComponent,
+    MutableRefObject,
+    RefAttributes,
+    Suspense,
+    useEffect,
+    useRef,
+    useState,
 } from 'react'
 import { SceneWrapper } from './Scene.styled'
 import { Canvas, useFrame } from '@react-three/fiber'
@@ -8,64 +15,70 @@ import { Box, Plane, Sphere, Text } from '@react-three/drei'
 import {
     Controllers,
     Hands,
-    Interactive, VRButton,
-    XR, useController
+    Interactive,
+    VRButton,
+    XR,
+    useController,
 } from '@react-three/xr'
-import { Physics, RapierRigidBody, RigidBody } from '@react-three/rapier'
 import {
-    BufferGeometry,
-    Mesh,
-    NormalBufferAttributes,
-    Vector3
-} from 'three'
+    CollisionPayload,
+    Physics,
+    RapierRigidBody,
+    RigidBody,
+    RigidBodyProps,
+} from '@react-three/rapier'
+import { BufferGeometry, Mesh, NormalBufferAttributes, Vector3 } from 'three'
 import useGlobalState from '../../GlobalState'
 import { v2a } from '../../Helper'
+import { TestMessage } from 'rxjs/internal/testing/TestMessage'
 
 interface SceneProps {}
 
 const PhysicsBox = () => {
-    const globalState = useGlobalState()
+    // const globalState = useGlobalState()
 
-    const boxRigidBody = useRef<RapierRigidBody>(null)
-    const [boxColor, setBoxColor] = useState('blue')
-    const [position] = useState(new Vector3(0, 0.3, 0))
-    const [isDragging, setIsDragging] = useState(false)
-    const [test, setTest] = useState(false)
+    // const boxRigidBody = useRef<RapierRigidBody>(null)
+    // const [boxColor, setBoxColor] = useState('blue')
+    // const [position] = useState(new Vector3(0, 0.3, 0))
+    // const [isDragging, setIsDragging] = useState(false)
+    // const [test, setTest] = useState(false)
 
     useFrame(() => {
-        const controllerRight = globalState['controller-right']
-        console.log(
-            'pressed',
-            controllerRight.inputSource?.gamepad?.buttons[0].pressed
-        )
+        // const controllerRight = globalState['controller-right']
+        // console.log(
+        //     'pressed',
+        //     controllerRight.inputSource?.gamepad?.buttons[0].pressed
+        // )
 
-        if (!isDragging) {
-            setTest(false);
-            boxRigidBody.current?.setEnabled(true)
-            return
-        }
+        // if (!isDragging) {
+        //     setTest(false)
+        //     boxRigidBody.current?.setEnabled(true)
+        //     return
+        // }
 
-        if (!controllerRight.inputSource?.gamepad?.buttons[0].pressed) {
-            setIsDragging(false)
-            return
-        }
+        // if (!controllerRight.inputSource?.gamepad?.buttons[0].pressed) {
+        //     setIsDragging(false)
+        //     return
+        // }
 
-        setBoxColor('red')
-        boxRigidBody.current?.setEnabled(false)
-        boxRigidBody.current?.setTranslation(
-            controllerRight.controller.position,
-            true
-        )
+        // setBoxColor('red')
+        // boxRigidBody.current?.setEnabled(false)
+        // boxRigidBody.current?.setTranslation(
+        //     controllerRight.controller.position,
+        //     true
+        // )
     })
 
     return (
-        <Interactive onHover={() => {setTest(true); setIsDragging(true); }}>
-            <RigidBody ref={boxRigidBody}>
-                <Text color="green" position={[1, 1, 1]} fontSize={0.1}>
-                    Test: {JSON.stringify(test)} Position is set to {position} and test: and gs:
-                </Text>
-                <Box args={[0.2, 0.2, 0.2]} position={position}>
-                    <meshStandardMaterial color={boxColor} />
+        <Interactive
+            // onHover={() => {
+            //     setTest(true)
+            //     setIsDragging(true)
+            // }}
+        >
+            <RigidBody>
+                <Box args={[0.2, 0.2, 0.2]} position={[0, 0.3, 0]}>
+                    <meshStandardMaterial color={'blue'} />
                 </Box>
             </RigidBody>
         </Interactive>
@@ -88,37 +101,86 @@ const Floor = () => {
 }
 
 const Hand = () => {
-    const globalState = useGlobalState();
+    const globalState = useGlobalState()
 
-    const left = useRef() as React.RefObject<Mesh<BufferGeometry>>
-    const right = useRef() as React.RefObject<Mesh<BufferGeometry>>
+    const left = useRef<RapierRigidBody>(null)
+    const right = useRef<RapierRigidBody>(null)
 
-    const [test, setTest] = useState('test')
+    const [isIntersecting, setIsIntersecting] = useState(false)
+    const [lastIntersection, setLastIntersection] = useState<CollisionPayload>()
+    const [resetIntersection, setResetIntersection] = useState(false)
+
+    const test = useRef() as React.RefObject<Mesh<BufferGeometry>>
+
+    const [testText, setTestText] = useState('NE')
 
     useFrame(() => {
-        if(!globalState['controller-left']?.controller?.position || !globalState['controller-right']?.controller?.position) return;
-        
-        left.current?.position.set(...v2a(globalState['controller-left'].controller.position))
-        right.current?.position.set(...v2a(globalState['controller-right'].controller.position))
-    });  
+        if (
+            !globalState['controller-left']?.controller?.position ||
+            !globalState['controller-right']?.controller?.position
+        )
+            return
 
-    useEffect(() => {
-        if (left.current) {
-          // Set the position here
-          left.current.position.set(1, 2, 3); // Example position
+        left.current?.setTranslation(
+            globalState['controller-left'].controller.position,
+            false
+        )
+        right.current?.setTranslation(
+            globalState['controller-right'].controller.position,
+            false
+        )
+
+        const x = v2a(globalState['controller-right'].controller.position)
+        x[1] = x[1] + 0.5
+        test.current?.position.set(...x)
+
+        if (globalState['controller-right'].inputSource?.gamepad?.buttons[0].pressed && isIntersecting) {
+            setResetIntersection(false)
         }
-      }, []);
+
+        if (globalState['controller-right'].inputSource?.gamepad?.buttons[0].pressed && !resetIntersection) {
+            lastIntersection?.other.rigidBody?.setEnabled(false)
+            lastIntersection?.other.rigidBody?.setTranslation(
+                globalState['controller-right'].controller.position,
+                false
+            )
+        } else {
+            if (!resetIntersection) {
+                setResetIntersection(true)
+                lastIntersection?.other.rigidBody?.setEnabled(true)
+                lastIntersection?.other.rigidBody?.setTranslation(
+                    globalState['controller-right'].controller.position,
+                    true
+                )
+            }
+        }
+    })
 
     return (
         <>
-            <Sphere ref={left} args={[0.2]}>
-                <meshStandardMaterial color="red" />
-            </Sphere>
-            <Sphere ref={right} args={[0.2]}>
-                <meshStandardMaterial color="blue" />
-            </Sphere>
-            <Text color="green" fontSize={0.1}>
-                Test:
+            <RigidBody ref={left} sensor type={'kinematicPosition'}>
+                <Sphere args={[0.2]}>
+                    <meshStandardMaterial color="red" />
+                </Sphere>
+            </RigidBody>
+            <RigidBody
+                ref={right}
+                sensor
+                type={'kinematicPosition'}
+                onIntersectionEnter={(event) => {
+                    setIsIntersecting(true)
+                    setLastIntersection(event)
+                }}
+                onIntersectionExit={() => {
+                    setIsIntersecting(false)
+                }}
+            >
+                <Sphere args={[0.2]}>
+                    <meshStandardMaterial color="blue" />
+                </Sphere>
+            </RigidBody>
+            <Text ref={test} color="green" fontSize={0.1}>
+                Test:{testText}
             </Text>
         </>
     )
@@ -151,10 +213,9 @@ const Scene: FC<SceneProps> = () => {
                 <XR>
                     <XR_Init>
                         <Controllers />
-                        <Hand />
                         <Suspense>
                             <Physics debug gravity={[0, -9.81, 0]}>
-                                <Hands />
+                                <Hand />
                                 <ambientLight intensity={Math.PI / 2} />
                                 <spotLight
                                     position={[10, 10, 10]}

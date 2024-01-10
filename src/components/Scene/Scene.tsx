@@ -56,7 +56,7 @@ const PhysicsBox = () => {
         <Interactive onSelectStart={() => setIsDragging(true)}>
             <RigidBody ref={boxRigidBody}>
                 <Text color="green" position={[1, 1, 1]} fontSize={0.1}>
-                    Position is set to {position} and test: and gs:
+                    Test Position is set to {position} and test: and gs:
                 </Text>
                 <Box args={[0.2, 0.2, 0.2]} position={position}>
                     <meshStandardMaterial color={boxColor} />
